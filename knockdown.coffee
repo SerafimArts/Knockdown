@@ -2,8 +2,8 @@
 
  This file is part of Knockdown package.
 
- @author serafim <nesk@xakep.ru> (19.06.2014 21:18)
- @version: 1.1.0-dev
+ @author serafim <nesk@xakep.ru> (30.12.2014 1:24)
+ @version: 1.1.0
 
  For the full copyright and license information, please view the LICENSE
  file that was distributed with this source code.
@@ -13,7 +13,7 @@
 
 
 class Knockdown
-  @::version = '1.1.0-dev'
+  @::version = '1.1.0'
 
   ###
     Attributes
@@ -137,9 +137,14 @@ class Knockdown
       nodes[node.getAttribute("#{@attr.node}")] = node
     container.set(node, nodes)
 
-    do (container, controller) =>
-      controller::get = (key) => container.get key
-    return new controller(dom)
+    if controller instanceof Function
+      do (container, controller) =>
+        controller::get = (key) => container.get key
+      return new controller(dom)
+    else
+      do (container, controller) =>
+        controller.get = (key) => container.get key
+      return controller(dom)
 
 
   ###
