@@ -1,95 +1,189 @@
 ###
-  @version: 1.0.0
+
+ This file is part of Knockdown package.
+
+ @author serafim <nesk@xakep.ru> (19.06.2014 21:18)
+ @version: 1.1.0-dev
+
+ For the full copyright and license information, please view the LICENSE
+ file that was distributed with this source code.
+
 ###
 
-class window.nd
-  @version = '1.0.0'
-
-  ndBindings = {
-    prefix:     'nd-'
-    controller: 'controller'
-  }
-
-  templateBindings = {}
-  templateBindings[binding] = binding for binding of ko.bindingHandlers
 
 
-  @container = {
-    $window: window
-  }
+class Knockdown
+  @::version = '1.1.0-dev'
+
+  ###
+    Attributes
+  ###
+  class Attributes
+    toObject         = 'toObject'
+
+    constructor: ->
+      @prefix    = 'nd-'
+      controller = 'controller'
+      node       = 'node'
+
+      # nd-controller
+      Object.defineProperty @, 'controller', {
+        get:       => @prefix + controller
+        set: (val) => controller = val
+      }
+
+      # nd-node
+      Object.defineProperty @, 'node', {
+        get:       => @prefix + node
+        set: (val) => node = val
+      }
+
+      # original knockout bindings
+      @template = {}
+      @template[binding] = binding for binding of ko.bindingHandlers
+
+      # transform bindings
+      @transform   = {
+        attr:       toObject
+        event:      toObject
+        css:        toObject
+        style:      toObject
+        component:  toObject
+        template:   toObject
+      }
+
+    with: (rule) => @prefix + rule
 
 
-  @controller: (name, controller) =>
-    @container[name] = controller
+  ###
+    Di Container
+  ###
+  class Container
+    constructor: (items = {}) ->
+      @items = {
+        window: window
+      }
+
+      @[key] = value for key, value of items
+
+    get: (key) => @items[key]
+
+    has: (key) => !!@get(key)
+
+    set: (key, val) =>
+      @items[key] = val
+      @
+
+    with: (items) => new Container(items)
 
 
 
-  @invokeBindings: (dom) =>
+  ###
+    Initialize
+  ###
+  constructor: ->
+    @attr       = new Attributes
+    @container  = new Container
+
+    @ready      = false
+    @onReady    => @applyBindings()
+
+
+
+  ###
+    Add to container
+  ###
+  controller: (name, controller) =>
+    @container.set(name, controller)
+
+
+
+  ###
+    Replace bindings
+  ###
+  invokeBindings: (dom) =>
     parent = dom.parentNode
 
-    for rule, replace of templateBindings
-      for node in parent.querySelectorAll("[#{ndBindings.prefix + rule}]")
+    for rule, replace of @attr.template
+      for node in parent.querySelectorAll("[#{@attr.with(rule)}]")
         node.bindings = node.bindings || []
-        node.bindings.push "#{replace}: #{node.getAttribute("#{ndBindings.prefix + rule}")}"
+        value = node.getAttribute("#{@attr.with(rule)}")
 
-    for rule, replace of templateBindings
-      for node in parent.querySelectorAll("[#{ndBindings.prefix + rule}]")
+        # Реплейсы в значениях биндингов
+        if @attr.transform[replace]?
+          if @attr.transform[replace] is 'toObject'
+            value = "{ #{value} }"
+          else
+            throw new Error 'Undefined keyword type'
+
+        node.bindings.push "#{replace}: #{value}"
+
+    for rule, replace of @attr.template
+      for node in parent.querySelectorAll("[#{@attr.with(rule)}]")
         node.setAttribute('data-bind', node.bindings.join(', '))
+        node.removeAttribute("#{@attr.with(rule)}")
 
     dom
 
 
+  ###
+    Create container for controller
+  ###
+  invoke: (controller, dom) =>
+    container = @container.with({dom: dom})
 
-  @invoke: (controller, dom) =>
-    @dynamic = {
-      dom: dom
-    }
+    nodes = {}
+    for node in dom.querySelectorAll("[#{@attr.node}]")
+      nodes[node.getAttribute("#{@attr.node}")] = node
+    container.set(node, nodes)
 
-
-    args = (controller
-    .toString()
-    .match(/function\s*[\$_A-Z0-9a-z]+\s*\((.*?)\)/)[1]
-    )
-    .replace(/\s*/g, '')
-    .split(',')
-
-
-    invoke = (arg) =>
-      if arg.substr(0, 1) is '$'
-        key = arg.substr(1)
-        if @container[key]?
-          return @container[key]
-        else if @dynamic[key]?
-          return @dynamic[key]
-      null
+    do (container, controller) =>
+      controller::get = (key) => container.get key
+    return new controller(dom)
 
 
-    [invoker, invokerString, iterator] = [[], [], 0]
-    for arg in args
-      invokerString.push "invoker[#{iterator++}]"
-      invoker.push invoke(arg)
-    return eval "new controller(#{invokerString.join(',')})"
+  ###
+    Bind new controllers for dom elements
+  ###
+  applyBindings: (node = document) =>
+    for dom in node.querySelectorAll("[#{@attr.controller}]")
+      value = dom.getAttribute(@attr.controller)
+      if @container.has(value)
+        @bind(value, dom)
 
 
-  @extend: (cls) ->
-    cls
+  ###
+    Bind controller by key for target dom element
+  ###
+  bind: (key, dom) =>
+    controller = @invoke(@container.get(key), dom)
+    dom.removeAttribute("#{@attr.controller}")
+    ko.applyBindings controller, @invokeBindings(dom)
+    @
 
 
-  @init: =>
-    for dom in document.querySelectorAll("[#{ndBindings.prefix + ndBindings.controller}]")
-      attr = dom.getAttribute(ndBindings.prefix + ndBindings.controller)
-      if @container[attr]?
-        controller = @invoke(@extend(@container[attr]), dom)
-        ko.applyBindings controller, @invokeBindings(dom)
 
 
-  if document.addEventListener
-    document.addEventListener 'DOMContentLoaded', =>
-      document.removeEventListener 'DOMContentLoaded', arguments.callee, false
-      @init()
-    , false
-  else if document.attachEvent
-    document.attachEvent 'onreadystatechange', =>
-      if document.readyState is 'complete'
-        document.detachEvent 'onreadystatechange', arguments.callee
-        @init()
+  ###
+    Ready events
+  ###
+  onReady: (cb = (->)) =>
+    readyCallback = =>
+      @ready = true
+      cb()
+
+    return readyCallback() if @ready
+
+    if document.addEventListener
+      document.addEventListener 'DOMContentLoaded', =>
+        document.removeEventListener 'DOMContentLoaded', arguments.callee, false
+        readyCallback()
+      , false
+    else if document.attachEvent
+      document.attachEvent 'onreadystatechange', =>
+        if document.readyState is 'complete'
+          document.detachEvent 'onreadystatechange', arguments.callee
+          readyCallback()
+
+
+window.nd = new Knockdown
