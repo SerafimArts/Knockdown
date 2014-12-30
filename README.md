@@ -40,6 +40,36 @@ nd-template
 - С помощью атрибута `nd-node="some"` можно добавить dom-элемент в контейнер `this.get('node').some`
 
 
+#### Пример шаблона:
+```html
+<body>
+    <section class="api-example" nd-controller="highlight">
+        <aside nd-foreach="nav">
+            <a href="javascript:void(0)" nd-click="focus" nd-attr="class: (active()?'active':'')">
+                <label class="api-get" nd-attr="class: 'api-' + type" nd-text="type">&nbsp;</label>
+                <span nd-text="title"></span>
+            </a>
+        </aside>
+        <article>
+            <header>
+                <section class="select" nd-click="language.toggle" 
+                    nd-attr="class: 'select ' + (language.focus()?'focus':'')">
+                    
+                    <div class="select-current" nd-text="language.current().value">current</div>
+                    <div class="select-dropdown" nd-foreach="language.values">
+                        <a href="javascript:void(0);" nd-text="value" nd-click="focus">&nbsp;</a>
+                    </div>
+                </section>
+            </header>
+            <pre><code class="hljs"
+               nd-id="code"
+               nd-attr="class: 'hljs ' + language.current().id"
+               nd-html="code"></code></pre>
+        </article>
+    </section>
+</body>
+```
+
 
 #### Версия 1.1.0
 - Убран ioc, теперь все объекты из контейнера можно получить с помощью метода this.get('key') в контроллере - с долларом в аргументах есть проблема в минифиакторах JS
