@@ -3,7 +3,7 @@
  This file is part of Knockdown package.
 
  @author serafim <nesk@xakep.ru> (30.12.2014 1:24)
- @version: 1.1.0
+ @version: 1.1.2
 
  For the full copyright and license information, please view the LICENSE
  file that was distributed with this source code.
@@ -13,7 +13,7 @@
 
 
 class Knockdown
-  @::version = '1.1.0'
+  @::version = '1.1.2'
 
   ###
     Attributes
@@ -94,6 +94,8 @@ class Knockdown
     Add to container
   ###
   controller: (name, controller) =>
+    if !controller? && name instanceof Function
+      [controller, name] = [name, name.name]
     @container.set(name, controller)
 
 
@@ -135,14 +137,16 @@ class Knockdown
     nodes = {}
     for node in dom.querySelectorAll("[#{@attr.node}]")
       nodes[node.getAttribute("#{@attr.node}")] = node
-    container.set(node, nodes)
+    container.set('node', nodes)
 
     if controller instanceof Function
       do (container, controller) =>
+        controller::container = container
         controller::get = (key) => container.get key
       return new controller(dom)
     else
       do (container, controller) =>
+        controller.container = container
         controller.get = (key) => container.get key
       return controller(dom)
 
