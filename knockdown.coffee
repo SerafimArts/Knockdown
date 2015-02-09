@@ -1,14 +1,14 @@
 ###
+  This file is part of Knockdown package.
 
- This file is part of Knockdown package.
+  @author serafim <nesk@xakep.ru> (30.12.2014 1:24)
+  @version: 1.2.0
 
- @author serafim <nesk@xakep.ru> (30.12.2014 1:24)
- @version: 1.2.0
-
- For the full copyright and license information, please view the LICENSE
- file that was distributed with this source code.
-
+  For the full copyright and license information, please view the LICENSE
+  file that was distributed with this source code.
 ###
+
+
 
 class Knockdown
   @::version = '1.2.0'
