@@ -3,17 +3,15 @@
  This file is part of Knockdown package.
 
  @author serafim <nesk@xakep.ru> (30.12.2014 1:24)
- @version: 1.1.2
+ @version: 1.2.0
 
  For the full copyright and license information, please view the LICENSE
  file that was distributed with this source code.
 
 ###
 
-
-
 class Knockdown
-  @::version = '1.1.2'
+  @::version = '1.2.0'
 
   ###
     Attributes
@@ -131,24 +129,11 @@ class Knockdown
   ###
     Create container for controller
   ###
-  invoke: (controller, dom) =>
-    container = @container.with({dom: dom})
-
-    nodes = {}
-    for node in dom.querySelectorAll("[#{@attr.node}]")
-      nodes[node.getAttribute("#{@attr.node}")] = node
-    container.set('node', nodes)
-
-    if controller instanceof Function
-      do (container, controller) =>
-        controller::container = container
-        controller::get = (key) => container.get key
-      return new controller(dom)
+  instance: (controller, dom) =>
+    return if controller instanceof Function
+      new controller(dom)
     else
-      do (container, controller) =>
-        controller.container = container
-        controller.get = (key) => container.get key
-      return controller(dom)
+      controller(dom)
 
 
   ###
@@ -156,19 +141,23 @@ class Knockdown
   ###
   applyBindings: (node = document) =>
     for dom in node.querySelectorAll("[#{@attr.controller}]")
-      value = dom.getAttribute(@attr.controller)
-      if @container.has(value)
-        @bind(value, dom)
+      attr = dom.getAttribute(@attr.controller)
+      continue unless attr?
+
+      container = @container.get(attr)
+
+      for subDom in dom.querySelectorAll("[#{@attr.controller}]")
+        subContainer = @container.get(subDom.getAttribute(@attr.controller))
+        subDom.removeAttribute(@attr.controller)
+        key = 'subController' + Math.round(Math.random() * 100000)
+        container::[key] = @instance(subContainer, subDom)
+        subDom.setAttribute('nd-with', key)
 
 
-  ###
-    Bind controller by key for target dom element
-  ###
-  bind: (key, dom) =>
-    controller = @invoke(@container.get(key), dom)
-    dom.removeAttribute("#{@attr.controller}")
-    ko.applyBindings controller, @invokeBindings(dom)
-    @
+      controller = @instance(container, dom)
+      dom.removeAttribute("#{@attr.controller}")
+      ko.applyBindings controller, @invokeBindings(dom)
+
 
 
 
