@@ -17,8 +17,8 @@ nd-enable
 nd-disable 
 nd-event 
 nd-foreach 
-nd-hasfocus 
 nd-hasFocus 
+nd-hasfocus # alias
 nd-html 
 nd-if 
 nd-ifnot 
@@ -29,15 +29,13 @@ nd-style
 nd-submit 
 nd-text 
 nd-textInput 
-nd-textinput 
+nd-textinput # alias
 nd-uniqueName 
 nd-value 
 nd-visible 
 nd-click 
 nd-template
 ```
-- С помощью выражения `this.get(KEY)` в контроллере можно получить значение из контейнера
-- С помощью атрибута `nd-node="some"` можно добавить dom-элемент в контейнер `this.get('node').some`
 
 
 #### Пример шаблона:
@@ -69,7 +67,9 @@ nd-template
     </section>
 </body>
 ```
-
+### Версия 1.2.0
+- Убрана возможность получения dom эелемента из контроллера (nd-node)
+- Добавлена возможность использования вложенных контроллеров
 
 #### Версия 1.1.0
 - Убран ioc, теперь все объекты из контейнера можно получить с помощью метода this.get('key') в контроллере - с долларом в аргументах есть проблема в минифиакторах JS
