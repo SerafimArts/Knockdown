@@ -3,7 +3,7 @@
   This file is part of Knockdown package.
 
   @author serafim <nesk@xakep.ru> (30.12.2014 1:24)
-  @version: 1.2.0
+  @version: 1.2.1
 
   For the full copyright and license information, please view the LICENSE
   file that was distributed with this source code.
@@ -16,7 +16,7 @@
   Knockdown = (function() {
     var Attributes, Container;
 
-    Knockdown.prototype.version = '1.2.0';
+    Knockdown.prototype.version = '1.2.1';
 
 
     /*
@@ -132,6 +132,9 @@
 
     function Knockdown() {
       this.onReady = __bind(this.onReady, this);
+      this.insertAfter = __bind(this.insertAfter, this);
+      this.insertBefore = __bind(this.insertBefore, this);
+      this.uuid = __bind(this.uuid, this);
       this.applyBindings = __bind(this.applyBindings, this);
       this.instance = __bind(this.instance, this);
       this.invokeBindings = __bind(this.invokeBindings, this);
@@ -217,12 +220,12 @@
      */
 
     Knockdown.prototype.applyBindings = function(node) {
-      var attr, container, controller, dom, key, subContainer, subDom, _i, _j, _len, _len1, _ref, _ref1, _results;
+      var applies, attr, container, controller, controllers, dom, instance, k, key, subContainer, subDom, _i, _j, _len, _len1, _ref, _ref1;
       if (node == null) {
         node = document;
       }
+      controllers = [];
       _ref = node.querySelectorAll("[" + this.attr.controller + "]");
-      _results = [];
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         dom = _ref[_i];
         attr = dom.getAttribute(this.attr.controller);
@@ -230,20 +233,56 @@
           continue;
         }
         container = this.container.get(attr);
+        applies = {};
         _ref1 = dom.querySelectorAll("[" + this.attr.controller + "]");
         for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
           subDom = _ref1[_j];
-          subContainer = this.container.get(subDom.getAttribute(this.attr.controller));
+          attr = subDom.getAttribute(this.attr.controller);
+          subContainer = this.container.get(attr);
           subDom.removeAttribute(this.attr.controller);
-          key = 'subController' + Math.round(Math.random() * 100000);
-          container.prototype[key] = this.instance(subContainer, subDom);
-          subDom.setAttribute('nd-with', key);
+          key = subDom.getAttribute('nd-id') || ("" + attr + "$") + this.uuid();
+          instance = this.instance(subContainer, subDom);
+          applies[key] = instance;
+          container.prototype[key] = instance;
+          this.insertAfter(document.createComment('/ko'), subDom);
+          this.insertBefore(document.createComment('ko with: ' + key), subDom);
         }
         controller = this.instance(container, dom);
+        for (k in applies) {
+          controller[k] = container.prototype[k];
+          delete container.prototype[k];
+        }
         dom.removeAttribute("" + this.attr.controller);
-        _results.push(ko.applyBindings(controller, this.invokeBindings(dom)));
+        controllers.push(controller);
+        ko.applyBindings(controller, this.invokeBindings(dom));
       }
-      return _results;
+      return controllers;
+    };
+
+    Knockdown.prototype.uuid = function() {
+      var d, uuid;
+      d = new Date().getTime();
+      uuid = 'xxxxxxxxxxxx4xxxyxxxxxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r;
+        r = (d + Math.random() * 16) % 16 | 0;
+        d = Math.floor(d / 16);
+        return (c === 'x' ? r : r & 0x3 | 0x8).toString(16);
+      });
+      return uuid;
+    };
+
+    Knockdown.prototype.insertBefore = function(newElement, targetElement) {
+      return targetElement.parentNode.insertBefore(newElement, targetElement);
+    };
+
+    Knockdown.prototype.insertAfter = function(newElement, targetElement) {
+      var parent, twin;
+      parent = targetElement.parentNode;
+      if (twin = targetElement.nextSibling) {
+        return parent.insertBefore(newElement, twin);
+      } else {
+        return parent.appendChild(newElement);
+      }
     };
 
 
