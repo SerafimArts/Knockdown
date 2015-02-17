@@ -2,7 +2,7 @@
   This file is part of Knockdown package.
 
   @author serafim <nesk@xakep.ru> (30.12.2014 1:24)
-  @version: 1.2.0
+  @version: 1.2.1
 
   For the full copyright and license information, please view the LICENSE
   file that was distributed with this source code.
@@ -11,7 +11,7 @@
 
 
 class Knockdown
-  @::version = '1.2.0'
+  @::version = '1.2.1'
 
   ###
     Attributes
@@ -140,23 +140,62 @@ class Knockdown
     Bind new controllers for dom elements
   ###
   applyBindings: (node = document) =>
+    controllers = [];
+
     for dom in node.querySelectorAll("[#{@attr.controller}]")
       attr = dom.getAttribute(@attr.controller)
       continue unless attr?
 
       container = @container.get(attr)
+      applies = {}
 
       for subDom in dom.querySelectorAll("[#{@attr.controller}]")
-        subContainer = @container.get(subDom.getAttribute(@attr.controller))
+        attr = subDom.getAttribute(@attr.controller)
+        subContainer = @container.get(attr)
         subDom.removeAttribute(@attr.controller)
-        key = 'subController' + Math.round(Math.random() * 100000)
-        container::[key] = @instance(subContainer, subDom)
-        subDom.setAttribute('nd-with', key)
 
+        key = subDom.getAttribute('nd-id') || "#{attr}$" + @uuid()
+        instance = @instance(subContainer, subDom)
+        applies[key] = instance
+        container::[key] = instance
+
+        @insertAfter(document.createComment('/ko'), subDom)
+        @insertBefore(document.createComment('ko with: ' + key), subDom)
 
       controller = @instance(container, dom)
+
+      # move from prototype to instance
+      for k of applies
+        controller[k] = container::[k]
+        delete container::[k]
+
       dom.removeAttribute("#{@attr.controller}")
+      controllers.push controller
       ko.applyBindings controller, @invokeBindings(dom)
+
+    controllers
+
+  uuid: =>
+    d = new Date().getTime();
+    uuid = 'xxxxxxxxxxxx4xxxyxxxxxxxxxxxxxxx'.replace /[xy]/g, (c) ->
+      r = (d + Math.random()*16)%16 | 0;
+      d = Math.floor(d/16)
+      (if c is 'x' then r else (r&0x3|0x8)).toString(16);
+
+    return uuid;
+
+
+
+  insertBefore: (newElement, targetElement) =>
+    targetElement.parentNode.insertBefore newElement, targetElement
+
+  insertAfter: (newElement, targetElement) =>
+    parent = targetElement.parentNode
+    if twin = targetElement.nextSibling
+      parent.insertBefore newElement, twin
+    else
+      parent.appendChild newElement
+
 
 
 
