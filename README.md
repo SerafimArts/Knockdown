@@ -1,7 +1,10 @@
 Knockdown
 =========
 
-angular-like KnockoutJS
+Angular-like KnockoutJS
+
+##### [Документация](https://github.com/SerafimArts/Knockdown/wiki) | [KnockoutJS](http://knockoutjs.com/)
+
 
 - Заменяет биндинги, вида `data-bind="N: value"` на `nd-N="value"`
 - Заменяет биндинги, вида `data-bind="attr: {class: 'some'}` на `nd-attr="class: 'some'"`, т.е. фигурные скобки писать не обязательно
