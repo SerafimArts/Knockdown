@@ -1,8 +1,8 @@
 ###
   This file is part of Knockdown package.
 
-  @author serafim <nesk@xakep.ru> (30.12.2014 1:24)
-  @version: 1.2.1
+  @author serafim <nesk@xakep.ru> (30.06.2015 21:05)
+  @version: 1.3.0
 
   For the full copyright and license information, please view the LICENSE
   file that was distributed with this source code.
@@ -11,7 +11,7 @@
 
 
 class Knockdown
-  @::version = '1.2.1'
+  @::version = '1.3.0'
 
   ###
     Attributes
@@ -129,51 +129,55 @@ class Knockdown
   ###
     Create container for controller
   ###
-  instance: (controller, dom) =>
+  instance: (controller, dom, args...) =>
     return if controller instanceof Function
-      new controller(dom)
+      new controller(dom, args)
     else
-      controller(dom)
+      controller(dom, args)
 
 
   ###
     Bind new controllers for dom elements
   ###
-  applyBindings: (node = document) =>
-    controllers = [];
-
+  applyBindings: (node = document, args...) =>
     for dom in node.querySelectorAll("[#{@attr.controller}]")
       attr = dom.getAttribute(@attr.controller)
       continue unless attr?
+      @applyContainer.apply(@, [dom, @container.get(attr)].concat(args))
 
-      container = @container.get(attr)
-      applies = {}
 
-      for subDom in dom.querySelectorAll("[#{@attr.controller}]")
-        attr = subDom.getAttribute(@attr.controller)
-        subContainer = @container.get(attr)
-        subDom.removeAttribute(@attr.controller)
+  ###
+    Apply bindings for controller
+  ###
+  applyContainer: (dom = document, container, args...) =>
+    controllers = [];
+    applies = {}
 
-        key = subDom.getAttribute('nd-id') || "#{attr}$" + @uuid()
-        instance = @instance(subContainer, subDom)
-        applies[key] = instance
-        container::[key] = instance
+    for subDom in dom.querySelectorAll("[#{@attr.controller}]")
+      attr = subDom.getAttribute(@attr.controller)
+      subContainer = @container.get(attr)
+      subDom.removeAttribute(@attr.controller)
 
-        @insertAfter(document.createComment('/ko'), subDom)
-        @insertBefore(document.createComment('ko with: ' + key), subDom)
+      key = subDom.getAttribute('nd-id') || "#{attr}$" + @uuid()
+      instance = @instance.apply @, [subContainer, subDom].concat(args)
+      applies[key] = instance
+      container::[key] = instance
 
-      controller = @instance(container, dom)
+      @insertAfter(document.createComment('/ko'), subDom)
+      @insertBefore(document.createComment('ko with: ' + key), subDom)
 
-      # move from prototype to instance
-      for k of applies
-        controller[k] = container::[k]
-        delete container::[k]
+    controller = @instance.apply @ [container, dom].concat(args)
 
-      dom.removeAttribute("#{@attr.controller}")
-      controllers.push controller
-      ko.applyBindings controller, @invokeBindings(dom)
+    # move from prototype to instance
+    for k of applies
+      controller[k] = container::[k]
+      delete container::[k]
 
-    controllers
+    dom.removeAttribute("#{@attr.controller}")
+    controllers.push controller
+    ko.applyBindings controller, @invokeBindings(dom)
+
+    controller
 
   uuid: =>
     d = new Date().getTime();
