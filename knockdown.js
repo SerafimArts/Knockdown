@@ -3,7 +3,7 @@
   This file is part of Knockdown package.
 
   @author serafim <nesk@xakep.ru> (30.12.2014 1:24)
-  @version: 1.2.1
+  @version: 1.3.0
 
   For the full copyright and license information, please view the LICENSE
   file that was distributed with this source code.
@@ -11,12 +11,13 @@
 
 (function() {
   var Knockdown,
-    __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
+    __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
+    __slice = [].slice;
 
   Knockdown = (function() {
     var Attributes, Container;
 
-    Knockdown.prototype.version = '1.2.1';
+    Knockdown.prototype.version = '1.3.0';
 
 
     /*
@@ -135,6 +136,7 @@
       this.insertAfter = __bind(this.insertAfter, this);
       this.insertBefore = __bind(this.insertBefore, this);
       this.uuid = __bind(this.uuid, this);
+      this.applyContainer = __bind(this.applyContainer, this);
       this.applyBindings = __bind(this.applyBindings, this);
       this.instance = __bind(this.instance, this);
       this.invokeBindings = __bind(this.invokeBindings, this);
@@ -206,11 +208,13 @@
       Create container for controller
      */
 
-    Knockdown.prototype.instance = function(controller, dom) {
+    Knockdown.prototype.instance = function() {
+      var args, controller, dom;
+      controller = arguments[0], dom = arguments[1], args = 3 <= arguments.length ? __slice.call(arguments, 2) : [];
       if (controller instanceof Function) {
-        return new controller(dom);
+        return new controller(dom, args);
       } else {
-        return controller(dom);
+        return controller(dom, args);
       }
     };
 
@@ -219,44 +223,60 @@
       Bind new controllers for dom elements
      */
 
-    Knockdown.prototype.applyBindings = function(node) {
-      var applies, attr, container, controller, controllers, dom, instance, k, key, subContainer, subDom, _i, _j, _len, _len1, _ref, _ref1;
+    Knockdown.prototype.applyBindings = function() {
+      var args, attr, dom, node, _i, _len, _ref, _results;
+      node = arguments[0], args = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
       if (node == null) {
         node = document;
       }
-      controllers = [];
       _ref = node.querySelectorAll("[" + this.attr.controller + "]");
+      _results = [];
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         dom = _ref[_i];
         attr = dom.getAttribute(this.attr.controller);
         if (attr == null) {
           continue;
         }
-        container = this.container.get(attr);
-        applies = {};
-        _ref1 = dom.querySelectorAll("[" + this.attr.controller + "]");
-        for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-          subDom = _ref1[_j];
-          attr = subDom.getAttribute(this.attr.controller);
-          subContainer = this.container.get(attr);
-          subDom.removeAttribute(this.attr.controller);
-          key = subDom.getAttribute('nd-id') || ("" + attr + "$") + this.uuid();
-          instance = this.instance(subContainer, subDom);
-          applies[key] = instance;
-          container.prototype[key] = instance;
-          this.insertAfter(document.createComment('/ko'), subDom);
-          this.insertBefore(document.createComment('ko with: ' + key), subDom);
-        }
-        controller = this.instance(container, dom);
-        for (k in applies) {
-          controller[k] = container.prototype[k];
-          delete container.prototype[k];
-        }
-        dom.removeAttribute("" + this.attr.controller);
-        controllers.push(controller);
-        ko.applyBindings(controller, this.invokeBindings(dom));
+        _results.push(this.applyContainer.apply(this, [dom, this.container.get(attr)].concat(args)));
       }
-      return controllers;
+      return _results;
+    };
+
+
+    /*
+      Apply bindings for controller
+     */
+
+    Knockdown.prototype.applyContainer = function() {
+      var applies, args, attr, container, controller, controllers, dom, instance, k, key, subContainer, subDom, _i, _len, _ref;
+      dom = arguments[0], container = arguments[1], args = 3 <= arguments.length ? __slice.call(arguments, 2) : [];
+      if (dom == null) {
+        dom = document;
+      }
+      controllers = [];
+      applies = {};
+      _ref = dom.querySelectorAll("[" + this.attr.controller + "]");
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        subDom = _ref[_i];
+        attr = subDom.getAttribute(this.attr.controller);
+        subContainer = this.container.get(attr);
+        subDom.removeAttribute(this.attr.controller);
+        key = subDom.getAttribute('nd-id') || ("" + attr + "$") + this.uuid();
+        instance = this.instance.apply(this, [subContainer, subDom].concat(args));
+        applies[key] = instance;
+        container.prototype[key] = instance;
+        this.insertAfter(document.createComment('/ko'), subDom);
+        this.insertBefore(document.createComment('ko with: ' + key), subDom);
+      }
+      controller = this.instance.apply(this([container, dom].concat(args)));
+      for (k in applies) {
+        controller[k] = container.prototype[k];
+        delete container.prototype[k];
+      }
+      dom.removeAttribute("" + this.attr.controller);
+      controllers.push(controller);
+      ko.applyBindings(controller, this.invokeBindings(dom));
+      return controller;
     };
 
     Knockdown.prototype.uuid = function() {
