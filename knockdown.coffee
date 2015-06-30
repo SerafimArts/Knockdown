@@ -1,7 +1,7 @@
 ###
   This file is part of Knockdown package.
 
-  @author serafim <nesk@xakep.ru> (30.06.2015 21:05)
+  @author serafim <nesk@xakep.ru> (30.12.2014 1:24)
   @version: 1.3.0
 
   For the full copyright and license information, please view the LICENSE
@@ -130,7 +130,7 @@ class Knockdown
     Create container for controller
   ###
   instance: (controller, dom, args...) =>
-    return if controller instanceof Function
+    if controller instanceof Function
       new controller(dom, args)
     else
       controller(dom, args)
@@ -166,7 +166,7 @@ class Knockdown
       @insertAfter(document.createComment('/ko'), subDom)
       @insertBefore(document.createComment('ko with: ' + key), subDom)
 
-    controller = @instance.apply @ [container, dom].concat(args)
+    controller = @instance.apply @, [container, dom].concat(args)
 
     # move from prototype to instance
     for k of applies
