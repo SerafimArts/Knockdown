@@ -268,7 +268,7 @@
         this.insertAfter(document.createComment('/ko'), subDom);
         this.insertBefore(document.createComment('ko with: ' + key), subDom);
       }
-      controller = this.instance.apply(this([container, dom].concat(args)));
+      controller = this.instance.apply(this, [container, dom].concat(args));
       for (k in applies) {
         controller[k] = container.prototype[k];
         delete container.prototype[k];
